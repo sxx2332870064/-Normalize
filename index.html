@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+  />
+  <title>The Face It Wants</title>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
+  <script src="https://unpkg.com/ml5@0.12.2/dist/ml5.min.js"></script>
+
+  <style>
+    :root {
+      --bg: #050505;
+      --panel: rgba(10, 10, 10, 0.48);
+      --panel-border: rgba(255, 255, 255, 0.12);
+      --text: #f5f5f5;
+      --muted: rgba(255, 255, 255, 0.66);
+      --soft: rgba(255, 255, 255, 0.08);
+      --shadow: 0 10px 40px rgba(0, 0, 0, 0.28);
+      --radius: 18px;
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-left: env(safe-area-inset-left, 0px);
+      --safe-right: env(safe-area-inset-right, 0px);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, Arial, Helvetica, sans-serif;
+    }
+
+    body {
+      position: relative;
+    }
+
+    canvas {
+      display: block;
+    }
+
+    .ui-shell {
+      position: fixed;
+      inset: 0;
+      z-index: 999;
+      pointer-events: none;
+    }
+
+    .overlay-ui {
+      position: absolute;
+      top: calc(16px + var(--safe-top));
+      left: calc(16px + var(--safe-left));
+      width: min(360px, calc(100vw - 32px - var(--safe-left) - var(--safe-right)));
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: var(--radius);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+      padding: 16px 16px 14px;
+    }
+
+    .eyebrow {
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .title {
+      font-size: clamp(18px, 2vw, 22px);
+      line-height: 1.15;
+      margin: 0 0 12px 0;
+      font-weight: 600;
+    }
+
+    .section {
+      border-top: 1px solid var(--soft);
+      padding-top: 12px;
+      margin-top: 12px;
+    }
+
+    .section:first-of-type {
+      border-top: 0;
+      padding-top: 0;
+      margin-top: 0;
+    }
+
+    .section-label {
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+
+    .metric {
+      margin-bottom: 10px;
+    }
+
+    .metric-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      font-size: 14px;
+      margin-bottom: 6px;
+    }
+
+    .metric-name {
+      color: rgba(255,255,255,0.9);
+    }
+
+    .metric-value {
+      color: rgba(255,255,255,0.95);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .bar {
+      position: relative;
+      width: 100%;
+      height: 8px;
+      background: rgba(255,255,255,0.08);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      width: 0%;
+      background: rgba(255,255,255,0.88);
+      border-radius: 999px;
+      transition: width 140ms linear;
+    }
+
+    .note {
+      font-size: 12px;
+      line-height: 1.45;
+      color: var(--muted);
+    }
+
+    .status {
+      position: absolute;
+      left: calc(16px + var(--safe-left));
+      bottom: calc(16px + var(--safe-bottom));
+      max-width: min(420px, calc(100vw - 32px - var(--safe-left) - var(--safe-right)));
+      padding: 10px 12px;
+      font-size: 12px;
+      line-height: 1.4;
+      background: rgba(0, 0, 0, 0.28);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 14px;
+      color: rgba(255,255,255,0.78);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .center-hint {
+      position: absolute;
+      right: calc(16px + var(--safe-right));
+      bottom: calc(16px + var(--safe-bottom));
+      width: min(280px, calc(100vw - 32px - var(--safe-left) - var(--safe-right)));
+      padding: 12px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      background: rgba(0, 0, 0, 0.22);
+      color: rgba(255,255,255,0.72);
+      font-size: 12px;
+      line-height: 1.42;
+      text-align: left;
+    }
+
+    @media (max-width: 720px) {
+      .overlay-ui {
+        top: auto;
+        bottom: calc(16px + var(--safe-bottom));
+        left: calc(16px + var(--safe-left));
+        width: calc(100vw - 32px - var(--safe-left) - var(--safe-right));
+        max-height: 52vh;
+        overflow: auto;
+      }
+
+      .status {
+        top: calc(16px + var(--safe-top));
+        bottom: auto;
+        left: calc(16px + var(--safe-left));
+        right: calc(16px + var(--safe-right));
+        max-width: none;
+      }
+
+      .center-hint {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="ui-shell">
+    <div class="overlay-ui">
+      <div class="eyebrow">mirror reading interface</div>
+      <h1 class="title">Affective Alignment System</h1>
+
+      <div class="section">
+        <div class="section-label">emotion reading</div>
+
+        <div class="metric">
+          <div class="metric-top">
+            <span class="metric-name">happy</span>
+            <span class="metric-value" id="happyVal">--%</span>
+          </div>
+          <div class="bar"><div class="bar-fill" id="happyBar"></div></div>
+        </div>
+
+        <div class="metric">
+          <div class="metric-top">
+            <span class="metric-name">excited</span>
+            <span class="metric-value" id="excitedVal">--%</span>
+          </div>
+          <div class="bar"><div class="bar-fill" id="excitedBar"></div></div>
+        </div>
+
+        <div class="metric">
+          <div class="metric-top">
+            <span class="metric-name">anxious</span>
+            <span class="metric-value" id="anxiousVal">--%</span>
+          </div>
+          <div class="bar"><div class="bar-fill" id="anxiousBar"></div></div>
+        </div>
+
+        <div class="metric" style="margin-bottom:0;">
+          <div class="metric-top">
+            <span class="metric-name">calm</span>
+            <span class="metric-value" id="calmVal">--%</span>
+          </div>
+          <div class="bar"><div class="bar-fill" id="calmBar"></div></div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">system preference</div>
+        <div class="metric" style="margin-bottom:8px;">
+          <div class="metric-top">
+            <span class="metric-name">target match</span>
+            <span class="metric-value" id="targetMatchVal">--%</span>
+          </div>
+          <div class="bar"><div class="bar-fill" id="targetBar"></div></div>
+        </div>
+        <div class="note">
+          This score does not mean truth. It shows how closely the current face matches the expression pattern the system prefers to read: slightly smiling, symmetrical, open, and easy to classify.
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-label">reading note</div>
+        <div class="note" id="readingNote">
+          Waiting for a face.
+        </div>
+      </div>
+    </div>
+
+    <div class="status" id="statusText">loading webcam + facemesh…</div>
+
+    <div class="center-hint">
+      The system is not looking for your real feeling. It is looking for a face it can read easily.
+    </div>
+  </div>
+
+  <script>
+    let video;
+    let facemesh;
+    let predictions = [];
+
+    let smoothHappy = 25;
+    let smoothExcited = 25;
+    let smoothAnxious = 25;
+    let smoothCalm = 25;
+    let smoothTargetMatch = 35;
+
+    let liveMetrics = null;
+
+    let metricSmooth = {
+      mouthCurve: 0,
+      mouthOpenScore: 0,
+      eyeOpenScore: 0,
+      symmetryScore: 0,
+      browLiftScore: 0,
+      faceRatio: 1
+    };
+
+    let targetDrift = 0;
+    let baseline = null;
+    let calibrationFrames = 0;
+    const CALIBRATION_TARGET = 45;
+    let baselineBuffer = [];
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+
+      video = createCapture(
+        {
+          video: {
+            facingMode: "user"
+          },
+          audio: false
+        },
+        () => {
+          setStatus("camera active / loading facemesh…");
+        }
+      );
+
+      video.size(640, 480);
+      video.hide();
+
+      facemesh = ml5.facemesh(video, () => {
+        setStatus("facemesh active");
+      });
+
+      facemesh.on("predict", (results) => {
+        predictions = results;
+      });
+
+      textFont("Arial");
+      rectMode(CORNER);
+      noFill();
+    }
+
+    function draw() {
+      background(5);
+
+      push();
+      translate(width, 0);
+      scale(-1, 1);
+      image(video, 0, 0, width, height);
+      pop();
+
+      fill(0, 110);
+      noStroke();
+      rect(0, 0, width, height);
+
+      if (predictions.length > 0) {
+        const face = predictions[0];
+        analyzeEmotion(face);
+        drawFaceSystem(face);
+        drawFaceMetrics(face);
+      } else {
+        drawIdleState();
+      }
+    }
+
+    function drawIdleState() {
+      stroke(255, 45);
+      strokeWeight(1);
+      noFill();
+
+      const boxW = min(width * 0.34, 280);
+      const boxH = min(height * 0.48, 360);
+      rect(width / 2 - boxW / 2, height / 2 - boxH / 2, boxW, boxH, 18);
+
+      noStroke();
+      fill(255, 130);
+      textAlign(CENTER, CENTER);
+      textSize(min(width, height) * 0.028);
+      text("face not detected", width / 2, height / 2 - 14);
+      textSize(min(width, height) * 0.016);
+      text("please stand in front of the mirror", width / 2, height / 2 + 18);
+
+      updateUI(0, 0, 0, 0, 0, "Waiting for a face.");
+      liveMetrics = null;
+    }
+
+    function drawFaceSystem(face) {
+      const pts = face.scaledMesh.map((p) => [mirrorX(mapX(p[0])), mapY(p[1])]);
+      const bbox = getBoundingBox(pts);
+
+      drawFeatureBoxes(face);
+      drawExpectedFace(face, bbox);
+
+      stroke(255, 24);
+      strokeWeight(1);
+      for (let i = 0; i < pts.length; i += 8) {
+        point(pts[i][0], pts[i][1]);
+      }
+    }
+
+    function drawFeatureBoxes(face) {
+      const anns = face.annotations;
+      drawBoxAroundPoints(anns.leftEyeUpper0.concat(anns.leftEyeLower0), color(255, 150));
+      drawBoxAroundPoints(anns.rightEyeUpper0.concat(anns.rightEyeLower0), color(255, 150));
+      drawBoxAroundPoints(anns.lipsUpperOuter.concat(anns.lipsLowerOuter), color(255, 175));
+      drawBoxAroundPoints(anns.leftEyebrowUpper, color(210, 100));
+      drawBoxAroundPoints(anns.rightEyebrowUpper, color(210, 100));
+    }
+
+    function drawBoxAroundPoints(points, c) {
+      let xs = [];
+      let ys = [];
+
+      for (let p of points) {
+        xs.push(mirrorX(mapX(p[0])));
+        ys.push(mapY(p[1]));
+      }
+
+      const minX = Math.min(...xs);
+      const maxX = Math.max(...xs);
+      const minY = Math.min(...ys);
+      const maxY = Math.max(...ys);
+
+      const t = frameCount * 0.04;
+      const jx = sin(t + minX * 0.02) * 0.7;
+      const jy = cos(t + minY * 0.02) * 0.7;
+
+      noFill();
+      stroke(c);
+      strokeWeight(1);
+      rect(minX - 6 + jx, minY - 6 + jy, maxX - minX + 12, maxY - minY + 12, 8);
+    }
+
+    function drawExpectedFace(face, bbox) {
+      const matchNorm = smoothTargetMatch / 100.0;
+
+      const cx = (bbox.minX + bbox.maxX) / 2;
+      const cy = (bbox.minY + bbox.maxY) / 2;
+      const fw = bbox.maxX - bbox.minX;
+      const fh = bbox.maxY - bbox.minY;
+
+      const driftAmount = map(matchNorm, 0, 1, 30, 6);
+      const driftX = sin(frameCount * 0.012) * driftAmount + targetDrift * 8;
+      const driftY = cos(frameCount * 0.015) * driftAmount * 0.58;
+
+      const x = cx + driftX;
+      const y = cy + driftY;
+
+      stroke(255, 190);
+      strokeWeight(1.25);
+      noFill();
+
+      const headW = fw * 0.72;
+      const headH = fh * 0.92;
+
+      beginShape();
+      vertex(x, y - headH * 0.52);
+      vertex(x + headW * 0.42, y - headH * 0.28);
+      vertex(x + headW * 0.48, y + headH * 0.08);
+      vertex(x + headW * 0.2, y + headH * 0.48);
+      vertex(x, y + headH * 0.58);
+      vertex(x - headW * 0.2, y + headH * 0.48);
+      vertex(x - headW * 0.48, y + headH * 0.08);
+      vertex(x - headW * 0.42, y - headH * 0.28);
+      endShape(CLOSE);
+
+      const eyeY = y - headH * 0.12;
+      const eyeSpacing = headW * 0.22;
+      const eyeW = headW * 0.18;
+      const eyeH = map(matchNorm, 0, 1, headH * 0.028, headH * 0.07);
+
+      drawGeomEye(x - eyeSpacing, eyeY, eyeW, eyeH);
+      drawGeomEye(x + eyeSpacing, eyeY, eyeW, eyeH);
+
+      line(
+        x - eyeSpacing - eyeW * 0.45,
+        eyeY - eyeH * 1.7,
+        x - eyeSpacing + eyeW * 0.45,
+        eyeY - eyeH * 1.4
+      );
+      line(
+        x + eyeSpacing - eyeW * 0.45,
+        eyeY - eyeH * 1.4,
+        x + eyeSpacing + eyeW * 0.45,
+        eyeY - eyeH * 1.7
+      );
+
+      beginShape();
+      vertex(x, y - headH * 0.02);
+      vertex(x - headW * 0.03, y + headH * 0.18);
+      vertex(x + headW * 0.05, y + headH * 0.22);
+      endShape();
+
+      const mouthY = y + headH * 0.23;
+      const mouthW = headW * 0.22;
+      const smileDepth = map(matchNorm, 0, 1, -3, 10);
+
+      beginShape();
+      vertex(x - mouthW / 2, mouthY);
+      quadraticVertex(x, mouthY + smileDepth, x + mouthW / 2, mouthY);
+      endShape();
+
+      stroke(255, 85);
+      line(x, y - headH * 0.52, x, y + headH * 0.58);
+    }
+
+    function drawGeomEye(x, y, w, h) {
+      beginShape();
+      vertex(x - w / 2, y);
+      quadraticVertex(x, y - h, x + w / 2, y);
+      quadraticVertex(x, y + h * 0.8, x - w / 2, y);
+      endShape(CLOSE);
+    }
+
+    function analyzeEmotion(face) {
+      const anns = face.annotations;
+
+      const mouthTop = avgPoint(anns.lipsUpperInner || anns.lipsUpperOuter);
+      const mouthBottom = avgPoint(anns.lipsLowerInner || anns.lipsLowerOuter);
+      const mouthLeft = anns.lipsUpperOuter[0];
+      const mouthRight = anns.lipsUpperOuter[anns.lipsUpperOuter.length - 1];
+
+      const leftEyeTop = avgPoint(anns.leftEyeUpper0);
+      const leftEyeBottom = avgPoint(anns.leftEyeLower0);
+      const rightEyeTop = avgPoint(anns.rightEyeUpper0);
+      const rightEyeBottom = avgPoint(anns.rightEyeLower0);
+
+      const leftBrow = avgPoint(anns.leftEyebrowUpper);
+      const rightBrow = avgPoint(anns.rightEyebrowUpper);
+
+      const noseTip = anns.noseTip ? avgPoint(anns.noseTip) : avgPoint(anns.midwayBetweenEyes);
+      const betweenEyes = avgPoint(anns.midwayBetweenEyes);
+
+      const faceScale = max(
+        dist2D(mouthLeft, mouthRight),
+        dist2D(betweenEyes, mouthBottom),
+        1
+      );
+
+      const mouthOpen = dist2D(mouthTop, mouthBottom) / faceScale;
+      const mouthWidth = dist2D(mouthLeft, mouthRight) / faceScale;
+      const leftEyeOpen = dist2D(leftEyeTop, leftEyeBottom) / faceScale;
+      const rightEyeOpen = dist2D(rightEyeTop, rightEyeBottom) / faceScale;
+      const eyeOpen = (leftEyeOpen + rightEyeOpen) * 0.5;
+
+      const leftBrowLift = dist2D(leftBrow, leftEyeTop) / faceScale;
+      const rightBrowLift = dist2D(rightBrow, rightEyeTop) / faceScale;
+      const browLift = (leftBrowLift + rightBrowLift) * 0.5;
+
+      const eyeAsym = abs(leftEyeOpen - rightEyeOpen);
+      const mouthCenter = midpoint(mouthLeft, mouthRight);
+      const mouthLift = (mouthTop[1] - mouthCenter[1]) / faceScale;
+      const mouthCornerTilt = abs(mouthLeft[1] - mouthRight[1]) / faceScale;
+
+      if (!baseline && calibrationFrames < CALIBRATION_TARGET) {
+        calibrationFrames++;
+        baselineBuffer.push({
+          mouthOpen,
+          mouthWidth,
+          eyeOpen,
+          browLift
+        });
+
+        if (calibrationFrames >= CALIBRATION_TARGET) {
+          baseline = averageBaseline(baselineBuffer);
+          setStatus("facemesh active / baseline captured");
+        } else {
+          setStatus(`calibrating face model… ${calibrationFrames}/${CALIBRATION_TARGET}`);
+        }
+      }
+
+      const b = baseline || {
+        mouthOpen: 0.05,
+        mouthWidth: 0.38,
+        eyeOpen: 0.06,
+        browLift: 0.07
+      };
+
+      const mouthOpenDelta = mouthOpen - b.mouthOpen;
+      const mouthWidthDelta = mouthWidth - b.mouthWidth;
+      const eyeOpenDelta = eyeOpen - b.eyeOpen;
+      const browLiftDelta = browLift - b.browLift;
+
+      const smileSignal = constrain(
+        map(mouthWidthDelta, -0.03, 0.08, 0, 1) +
+        map(-mouthLift, -0.01, 0.04, 0, 1) * 0.8 -
+        map(mouthOpenDelta, 0.01, 0.08, 0, 0.4),
+        0,
+        1.2
+      );
+
+      const excitementSignal = constrain(
+        map(mouthOpenDelta, 0.0, 0.09, 0, 1) * 0.9 +
+        map(eyeOpenDelta, -0.01, 0.04, 0, 1) * 0.8 +
+        map(browLiftDelta, -0.01, 0.04, 0, 1) * 0.5,
+        0,
+        1.4
+      );
+
+      const anxietySignal = constrain(
+        map(eyeAsym, 0.0, 0.03, 0, 1) * 0.8 +
+        map(browLiftDelta, -0.01, 0.05, 0, 1) * 0.6 +
+        map(mouthCornerTilt, 0.0, 0.03, 0, 1) * 0.5 +
+        map(mouthOpenDelta, 0.01, 0.06, 0, 1) * 0.25,
+        0,
+        1.4
+      );
+
+      const calmSignal = constrain(
+        map(abs(eyeOpenDelta), 0.04, 0.0, 0, 1) * 0.6 +
+        map(abs(mouthOpenDelta), 0.06, 0.0, 0, 1) * 0.6 +
+        map(eyeAsym, 0.03, 0.0, 0, 1) * 0.65 +
+        map(abs(browLiftDelta), 0.04, 0.0, 0, 1) * 0.4,
+        0,
+        1.5
+      );
+
+      let happy = 18 + smileSignal * 55;
+      let excited = 12 + excitementSignal * 52;
+      let anxious = 12 + anxietySignal * 48;
+      let calm = 14 + calmSignal * 50;
+
+      const total = happy + excited + anxious + calm;
+      happy = (happy / total) * 100;
+      excited = (excited / total) * 100;
+      anxious = (anxious / total) * 100;
+      calm = (calm / total) * 100;
+
+      const targetDistance =
+        abs(smileSignal - 0.82) * 0.34 +
+        abs(excitementSignal - 0.42) * 0.12 +
+        abs(anxietySignal - 0.10) * 0.25 +
+        abs(eyeAsym - 0.005) * 8.5 +
+        abs(mouthOpenDelta - 0.015) * 8.0 +
+        abs(browLiftDelta - 0.01) * 8.0;
+
+      let targetMatch = 100 - targetDistance * 100;
+      targetMatch += sin(frameCount * 0.025) * 1.2;
+      targetMatch = constrain(targetMatch, 12, 94);
+
+      if (frameCount % 15 === 0) {
+        targetDrift = lerp(targetDrift, random(-1, 1), 0.35);
+      }
+
+      smoothHappy = lerp(smoothHappy, happy, 0.1);
+      smoothExcited = lerp(smoothExcited, excited, 0.1);
+      smoothAnxious = lerp(smoothAnxious, anxious, 0.1);
+      smoothCalm = lerp(smoothCalm, calm, 0.1);
+      smoothTargetMatch = lerp(smoothTargetMatch, targetMatch, 0.07);
+
+      const leftCheek = anns.leftCheek ? avgPoint(anns.leftCheek) : mouthLeft;
+      const rightCheek = anns.rightCheek ? avgPoint(anns.rightCheek) : mouthRight;
+      const faceWidth = dist2D(leftCheek, rightCheek) / faceScale;
+      const faceHeight = dist2D(betweenEyes, mouthBottom) / faceScale;
+      const faceRatio = faceWidth / max(faceHeight, 0.0001);
+
+      const mouthCurve = constrain(map(-mouthLift, -0.02, 0.05, 0, 100), 0, 100);
+      const mouthOpenScore = constrain(map(mouthOpenDelta, -0.01, 0.08, 0, 100), 0, 100);
+      const eyeOpenScore = constrain(map(eyeOpenDelta, -0.015, 0.04, 0, 100), 0, 100);
+      const symmetryScore = constrain(map(eyeAsym, 0.03, 0.0, 0, 100), 0, 100);
+      const browLiftScore = constrain(map(browLiftDelta, -0.015, 0.04, 0, 100), 0, 100);
+
+      metricSmooth.mouthCurve = lerp(metricSmooth.mouthCurve, mouthCurve, 0.12);
+      metricSmooth.mouthOpenScore = lerp(metricSmooth.mouthOpenScore, mouthOpenScore, 0.12);
+      metricSmooth.eyeOpenScore = lerp(metricSmooth.eyeOpenScore, eyeOpenScore, 0.12);
+      metricSmooth.symmetryScore = lerp(metricSmooth.symmetryScore, symmetryScore, 0.12);
+      metricSmooth.browLiftScore = lerp(metricSmooth.browLiftScore, browLiftScore, 0.12);
+      metricSmooth.faceRatio = lerp(metricSmooth.faceRatio, faceRatio, 0.08);
+
+      liveMetrics = {
+        mouthCurve: metricSmooth.mouthCurve,
+        mouthOpenScore: metricSmooth.mouthOpenScore,
+        eyeOpenScore: metricSmooth.eyeOpenScore,
+        symmetryScore: metricSmooth.symmetryScore,
+        browLiftScore: metricSmooth.browLiftScore,
+        faceRatio: metricSmooth.faceRatio,
+        mouthCenter,
+        mouthLeft,
+        mouthRight,
+        leftEyeCenter: midpoint(leftEyeTop, leftEyeBottom),
+        rightEyeCenter: midpoint(rightEyeTop, rightEyeBottom),
+        browCenter: midpoint(leftBrow, rightBrow),
+        betweenEyes,
+        noseTip
+      };
+
+      const note = buildReadingNote(
+        smoothHappy,
+        smoothExcited,
+        smoothAnxious,
+        smoothCalm,
+        smoothTargetMatch
+      );
+
+      updateUI(
+        smoothHappy,
+        smoothExcited,
+        smoothAnxious,
+        smoothCalm,
+        smoothTargetMatch,
+        note
+      );
+    }
+
+    function drawFaceMetrics() {
+      if (!liveMetrics) return;
+
+      const m = liveMetrics;
+
+      const mouthPos = toScreen(m.mouthCenter);
+      const leftEyePos = toScreen(m.leftEyeCenter);
+      const rightEyePos = toScreen(m.rightEyeCenter);
+      const browPos = toScreen(m.browCenter);
+      const nosePos = toScreen(m.noseTip);
+
+      drawMetricLabel(
+        mouthPos.x,
+        mouthPos.y + 10,
+        mouthPos.x + 88,
+        mouthPos.y + 34,
+        `mouth curve   ${nf(m.mouthCurve, 2, 0)}`
+      );
+
+      drawMetricLabel(
+        mouthPos.x - 10,
+        mouthPos.y + 16,
+        mouthPos.x - 156,
+        mouthPos.y + 56,
+        `mouth openness   ${nf(m.mouthOpenScore, 2, 0)}`
+      );
+
+      drawMetricLabel(
+        leftEyePos.x - 10,
+        leftEyePos.y,
+        leftEyePos.x - 148,
+        leftEyePos.y - 28,
+        `eye openness   ${nf(m.eyeOpenScore, 2, 0)}`
+      );
+
+      drawMetricLabel(
+        rightEyePos.x + 8,
+        rightEyePos.y,
+        rightEyePos.x + 118,
+        rightEyePos.y - 28,
+        `symmetry   ${nf(m.symmetryScore, 2, 0)}`
+      );
+
+      drawMetricLabel(
+        browPos.x,
+        browPos.y - 8,
+        browPos.x + 112,
+        browPos.y - 60,
+        `brow lift   ${nf(m.browLiftScore, 2, 0)}`
+      );
+
+      drawMetricLabel(
+        nosePos.x,
+        nosePos.y,
+        nosePos.x + 118,
+        nosePos.y + 10,
+        `face ratio   ${nf(m.faceRatio, 1, 2)}`
+      );
+    }
+
+    function buildReadingNote(h, e, a, c, tm) {
+      const topEmotion = getTopEmotion(h, e, a, c);
+      let matchText = "";
+
+      if (tm < 30) {
+        matchText = "The current face resists the preferred template.";
+      } else if (tm < 55) {
+        matchText = "The face is partially legible to the system.";
+      } else if (tm < 75) {
+        matchText = "The face is becoming easier for the system to classify.";
+      } else {
+        matchText = "The current face closely fits the system’s preferred expression pattern.";
+      }
+
+      return `Dominant reading: ${topEmotion}. ${matchText}`;
+    }
+
+    function getTopEmotion(h, e, a, c) {
+      const items = [
+        { name: "happy", value: h },
+        { name: "excited", value: e },
+        { name: "anxious", value: a },
+        { name: "calm", value: c }
+      ];
+      items.sort((x, y) => y.value - x.value);
+      return items[0].name;
+    }
+
+    function updateUI(h, e, a, c, targetMatch, note) {
+      setMetric("happyVal", "happyBar", h);
+      setMetric("excitedVal", "excitedBar", e);
+      setMetric("anxiousVal", "anxiousBar", a);
+      setMetric("calmVal", "calmBar", c);
+      setMetric("targetMatchVal", "targetBar", targetMatch);
+      document.getElementById("readingNote").innerText = note;
+    }
+
+    function setMetric(valueId, barId, value) {
+      const v = constrain(value, 0, 100);
+      document.getElementById(valueId).innerText = `${nf(v, 2, 0)}%`;
+      document.getElementById(barId).style.width = `${v}%`;
+    }
+
+    function setStatus(message) {
+      document.getElementById("statusText").innerText = message;
+    }
+
+    function toScreen(point) {
+      return {
+        x: mirrorX(mapX(point[0])),
+        y: mapY(point[1])
+      };
+    }
+
+    function drawMetricLabel(x1, y1, x2, y2, label) {
+      stroke(255, 90);
+      strokeWeight(1);
+      noFill();
+      line(x1, y1, x2, y2);
+
+      const padX = 8;
+      const padY = 6;
+      textSize(11);
+      textAlign(LEFT, CENTER);
+
+      const tw = textWidth(label);
+      const boxW = tw + padX * 2;
+      const boxH = 24;
+
+      noStroke();
+      fill(0, 170);
+      rect(x2, y2 - boxH / 2, boxW, boxH, 6);
+
+      stroke(255, 70);
+      noFill();
+      rect(x2, y2 - boxH / 2, boxW, boxH, 6);
+
+      noStroke();
+      fill(255, 210);
+      text(label, x2 + padX, y2 + 1);
+    }
+
+    function mirrorX(x) {
+      return width - x;
+    }
+
+    function mapX(x) {
+      return map(x, 0, video.width, 0, width);
+    }
+
+    function mapY(y) {
+      return map(y, 0, video.height, 0, height);
+    }
+
+    function avgPoint(points) {
+      let x = 0;
+      let y = 0;
+      for (let p of points) {
+        x += p[0];
+        y += p[1];
+      }
+      return [x / points.length, y / points.length];
+    }
+
+    function midpoint(a, b) {
+      return [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+    }
+
+    function dist2D(a, b) {
+      return dist(a[0], a[1], b[0], b[1]);
+    }
+
+    function getBoundingBox(points) {
+      const xs = points.map((p) => p[0]);
+      const ys = points.map((p) => p[1]);
+      return {
+        minX: Math.min(...xs),
+        maxX: Math.max(...xs),
+        minY: Math.min(...ys),
+        maxY: Math.max(...ys)
+      };
+    }
+
+    function averageBaseline(list) {
+      const out = {
+        mouthOpen: 0,
+        mouthWidth: 0,
+        eyeOpen: 0,
+        browLift: 0
+      };
+
+      for (const item of list) {
+        out.mouthOpen += item.mouthOpen;
+        out.mouthWidth += item.mouthWidth;
+        out.eyeOpen += item.eyeOpen;
+        out.browLift += item.browLift;
+      }
+
+      const n = list.length || 1;
+      out.mouthOpen /= n;
+      out.mouthWidth /= n;
+      out.eyeOpen /= n;
+      out.browLift /= n;
+      return out;
+    }
+
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+    }
+  </script>
+</body>
+</html>
