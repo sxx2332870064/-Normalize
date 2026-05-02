@@ -2,339 +2,317 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-  />
-  <title>The Face It Wants</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>The Face It Wants - Balanced Nose</title>
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.4/p5.min.js"></script>
   <script src="https://unpkg.com/ml5@0.12.2/dist/ml5.min.js"></script>
 
   <style>
-    :root {
-      --bg: #050505;
-      --panel: rgba(10, 10, 10, 0.48);
-      --panel-border: rgba(255, 255, 255, 0.12);
-      --text: #f5f5f5;
-      --muted: rgba(255, 255, 255, 0.66);
-      --soft: rgba(255, 255, 255, 0.08);
-      --shadow: 0 10px 40px rgba(0, 0, 0, 0.28);
-      --radius: 18px;
-      --safe-top: env(safe-area-inset-top, 0px);
-      --safe-bottom: env(safe-area-inset-bottom, 0px);
-      --safe-left: env(safe-area-inset-left, 0px);
-      --safe-right: env(safe-area-inset-right, 0px);
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html,
-    body {
+    html, body {
       margin: 0;
       padding: 0;
-      width: 100%;
-      height: 100%;
       overflow: hidden;
-      background: var(--bg);
-      color: var(--text);
-      font-family: Inter, Arial, Helvetica, sans-serif;
+      background: #050505;
+      color: #f2f2f2;
+      font-family: Arial, Helvetica, sans-serif;
     }
 
-    body {
-      position: relative;
-    }
-
-    canvas {
-      display: block;
-    }
-
-    .ui-shell {
-      position: fixed;
-      inset: 0;
-      z-index: 999;
-      pointer-events: none;
-    }
+    canvas { display: block; }
 
     .overlay-ui {
-      position: absolute;
-      top: calc(16px + var(--safe-top));
-      left: calc(16px + var(--safe-left));
-      width: min(360px, calc(100vw - 32px - var(--safe-left) - var(--safe-right)));
-      background: var(--panel);
-      border: 1px solid var(--panel-border);
-      border-radius: var(--radius);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      box-shadow: var(--shadow);
-      padding: 16px 16px 14px;
-    }
-
-    .eyebrow {
-      font-size: 11px;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      color: var(--muted);
-      margin-bottom: 8px;
+      display: none;
     }
 
     .title {
-      font-size: clamp(18px, 2vw, 22px);
-      line-height: 1.15;
-      margin: 0 0 12px 0;
-      font-weight: 600;
+      font-size: 15px;
+      letter-spacing: 1.4px;
+      text-transform: uppercase;
+      margin-bottom: 12px;
     }
 
-    .section {
-      border-top: 1px solid var(--soft);
+    .small {
+      font-size: 12px;
+      line-height: 1.45;
+      opacity: 0.72;
+      margin-bottom: 14px;
+    }
+
+    .face-card {
+      border-top: 1px solid rgba(255,255,255,0.13);
       padding-top: 12px;
       margin-top: 12px;
     }
 
-    .section:first-of-type {
-      border-top: 0;
-      padding-top: 0;
-      margin-top: 0;
-    }
-
-    .section-label {
-      font-size: 11px;
+    .face-title {
+      font-size: 12px;
+      letter-spacing: 1.1px;
       text-transform: uppercase;
-      letter-spacing: 0.12em;
-      color: var(--muted);
-      margin-bottom: 10px;
+      opacity: 0.8;
+      margin-bottom: 8px;
     }
 
-    .metric {
-      margin-bottom: 10px;
-    }
-
-    .metric-top {
+    .line {
       display: flex;
       justify-content: space-between;
-      align-items: center;
-      gap: 12px;
-      font-size: 14px;
-      margin-bottom: 6px;
+      gap: 10px;
+      margin: 5px 0;
+      font-size: 13px;
     }
 
-    .metric-name {
-      color: rgba(255,255,255,0.9);
-    }
-
-    .metric-value {
-      color: rgba(255,255,255,0.95);
-      font-variant-numeric: tabular-nums;
-    }
-
-    .bar {
-      position: relative;
-      width: 100%;
-      height: 8px;
-      background: rgba(255,255,255,0.08);
-      border-radius: 999px;
-      overflow: hidden;
-    }
-
-    .bar-fill {
-      height: 100%;
-      width: 0%;
-      background: rgba(255,255,255,0.88);
-      border-radius: 999px;
-      transition: width 140ms linear;
-    }
-
-    .note {
-      font-size: 12px;
-      line-height: 1.45;
-      color: var(--muted);
+    .line span:last-child {
+      text-align: right;
+      opacity: 0.84;
     }
 
     .status {
-      position: absolute;
-      left: calc(16px + var(--safe-left));
-      bottom: calc(16px + var(--safe-bottom));
-      max-width: min(420px, calc(100vw - 32px - var(--safe-left) - var(--safe-right)));
-      padding: 10px 12px;
+      position: fixed;
+      bottom: 18px;
+      left: 18px;
+      z-index: 999;
       font-size: 12px;
-      line-height: 1.4;
-      background: rgba(0, 0, 0, 0.28);
-      border: 1px solid rgba(255,255,255,0.08);
-      border-radius: 14px;
-      color: rgba(255,255,255,0.78);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-    }
-
-    .center-hint {
-      position: absolute;
-      right: calc(16px + var(--safe-right));
-      bottom: calc(16px + var(--safe-bottom));
-      width: min(280px, calc(100vw - 32px - var(--safe-left) - var(--safe-right)));
-      padding: 12px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,0.08);
-      background: rgba(0, 0, 0, 0.22);
-      color: rgba(255,255,255,0.72);
-      font-size: 12px;
-      line-height: 1.42;
-      text-align: left;
+      opacity: 0.75;
+      background: rgba(0,0,0,0.32);
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 8px 10px;
+      border-radius: 10px;
+      pointer-events: none;
     }
 
     @media (max-width: 720px) {
       .overlay-ui {
         top: auto;
-        bottom: calc(16px + var(--safe-bottom));
-        left: calc(16px + var(--safe-left));
-        width: calc(100vw - 32px - var(--safe-left) - var(--safe-right));
-        max-height: 52vh;
-        overflow: auto;
+        bottom: 16px;
+        left: 12px;
+        right: 12px;
+        width: auto;
+        max-height: 44vh;
       }
 
       .status {
-        top: calc(16px + var(--safe-top));
+        top: 14px;
         bottom: auto;
-        left: calc(16px + var(--safe-left));
-        right: calc(16px + var(--safe-right));
-        max-width: none;
-      }
-
-      .center-hint {
-        display: none;
+        left: 12px;
+        right: 12px;
       }
     }
   </style>
 </head>
+
 <body>
-  <div class="ui-shell">
-    <div class="overlay-ui">
-      <div class="eyebrow">mirror reading interface</div>
-      <h1 class="title">Affective Alignment System</h1>
-
-      <div class="section">
-        <div class="section-label">emotion reading</div>
-
-        <div class="metric">
-          <div class="metric-top">
-            <span class="metric-name">happy</span>
-            <span class="metric-value" id="happyVal">--%</span>
-          </div>
-          <div class="bar"><div class="bar-fill" id="happyBar"></div></div>
-        </div>
-
-        <div class="metric">
-          <div class="metric-top">
-            <span class="metric-name">excited</span>
-            <span class="metric-value" id="excitedVal">--%</span>
-          </div>
-          <div class="bar"><div class="bar-fill" id="excitedBar"></div></div>
-        </div>
-
-        <div class="metric">
-          <div class="metric-top">
-            <span class="metric-name">anxious</span>
-            <span class="metric-value" id="anxiousVal">--%</span>
-          </div>
-          <div class="bar"><div class="bar-fill" id="anxiousBar"></div></div>
-        </div>
-
-        <div class="metric" style="margin-bottom:0;">
-          <div class="metric-top">
-            <span class="metric-name">calm</span>
-            <span class="metric-value" id="calmVal">--%</span>
-          </div>
-          <div class="bar"><div class="bar-fill" id="calmBar"></div></div>
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-label">system preference</div>
-        <div class="metric" style="margin-bottom:8px;">
-          <div class="metric-top">
-            <span class="metric-name">target match</span>
-            <span class="metric-value" id="targetMatchVal">--%</span>
-          </div>
-          <div class="bar"><div class="bar-fill" id="targetBar"></div></div>
-        </div>
-        <div class="note">
-          This score does not mean truth. It shows how closely the current face matches the expression pattern the system prefers to read: slightly smiling, symmetrical, open, and easy to classify.
-        </div>
-      </div>
-
-      <div class="section">
-        <div class="section-label">reading note</div>
-        <div class="note" id="readingNote">
-          Waiting for a face.
-        </div>
-      </div>
+  <div class="overlay-ui">
+    <div class="title">The Face It Wants</div>
+    <div class="small">
+      The system fills the detected face with archive images. Skin becomes the base layer; each eye, brow, nose, and mouth is matched and placed back onto the face.
+      The text above each face is the system's compressed reading, not a real emotion.
     </div>
-
-    <div class="status" id="statusText">loading webcam + facemesh…</div>
-
-    <div class="center-hint">
-      The system is not looking for your real feeling. It is looking for a face it can read easily.
-    </div>
+    <div id="faceSummary"></div>
   </div>
+
+  <div class="status" id="statusText">loading webcam + facemesh…</div>
 
   <script>
     let video;
     let facemesh;
     let predictions = [];
 
-    let smoothHappy = 25;
-    let smoothExcited = 25;
-    let smoothAnxious = 25;
-    let smoothCalm = 25;
-    let smoothTargetMatch = 35;
+    let archiveDB = [];
+    let archiveImages = {};
 
-    let liveMetrics = null;
+    let matchUsage = {};
+    let stableMatches = {};
+    let stableScores = {};
+    let lockedCritiques = {};
+    const CRITIQUE_HOLD_FRAMES = 180; // about 3 seconds at 60fps
 
-    let metricSmooth = {
-      mouthCurve: 0,
-      mouthOpenScore: 0,
-      eyeOpenScore: 0,
-      symmetryScore: 0,
-      browLiftScore: 0,
-      faceRatio: 1
+    const PARTS = ["skin", "brow", "eye", "nose", "mouth"];
+
+    const MATCH_RANDOMNESS = 0.025;
+    const USAGE_BALANCE = 0.045;
+    const SWITCH_MARGIN = 0.055;
+
+    // Nose should change, but not flicker.
+    // Higher = more stable. Lower = more sensitive.
+    const NOSE_SWITCH_MARGIN = 0.11;
+    const NOSE_RANDOMNESS = 0.010;
+    const NOSE_USAGE_BALANCE = 0.030;
+    const NOSE_SMOOTHING = 0.58;
+    let smoothedFeatureVectors = {};
+
+    const archiveSpec = {
+      skin: [
+        ["001","sponge, porous, fear","fear",[.45,.82,.28,.72,.36,.38]],
+        ["002","cracked clay, broken, sad","sad",[.95,.62,.18,.48,.42,.88]],
+        ["003","plastic film, tense, anxious","anxious",[.20,.74,.66,.30,.51,.58]],
+        ["004","black clay, viscous, disgust","disgust",[.78,.70,.52,.26,.31,.62]],
+        ["005","metal grid, ordered, calm","calm",[.30,.92,.34,.68,.90,.44]],
+        ["006","burst bubbles, fragile, surprised","surprised",[.60,.80,.76,.84,.49,.54]],
+        ["007","oxidized iron, uneven, contempt","contempt",[.90,.55,.24,.34,.22,.72]],
+        ["008","scratched metal, chaotic, anxious","anxious",[.75,.88,.40,.22,.28,.82]],
+        ["009","ash powder, unstable, fear","fear",[.80,.50,.30,.46,.35,.50]],
+        ["010","halftone dots, transition, calm","calm",[.25,.96,.44,.40,.86,.36]],
+        ["011","bark, folded, disgust","disgust",[.88,.64,.58,.18,.46,.76]],
+        ["012","rubber studs, alert, anticipation","alert",[.40,.90,.62,.42,.84,.40]],
+        ["013","wet asphalt, repressed, sorrow","sad",[.50,.68,.36,.32,.52,.34]],
+        ["014","gravel, fragmented, irritation","irritated",[.92,.46,.16,.38,.30,.94]],
+        ["015","mud cracks, conflict, anger","angry",[.96,.58,.22,.56,.40,.96]],
+        ["016","pumice, eroded, fear","fear",[.82,.78,.26,.76,.33,.66]],
+        ["017","metal grooves, tense, anger","angry",[.70,.86,.48,.20,.72,.78]],
+        ["018","fabric waves, soft, calm","calm",[.15,.72,.88,.24,.68,.18]]
+      ],
+      brow: [
+        ["019","fibrous paper, S curve, confusion","confusion",[.46,.58,.56,.34,.42,.32]],
+        ["020","felt strip, falling slope, sad","sad",[.40,.42,.36,.22,.48,.28]],
+        ["021","charred crack, compressed, disgust","disgust",[.86,.64,.18,.18,.32,.92]],
+        ["022","porous arch, raised, fear","fear",[.78,.84,.78,.76,.62,.60]],
+        ["023","dark clay, pressed folds, anxious","anxious",[.62,.70,.30,.20,.54,.56]],
+        ["024","black sand, radiating, surprise","surprised",[.66,.88,.82,.86,.58,.48]],
+        ["025","flaked shell, one-sided lift, contempt","contempt",[.74,.52,.68,.42,.18,.84]],
+        ["026","iron bar, rigid, calm","calm",[.44,.34,.40,.28,.72,.52]],
+        ["027","brushed metal, offset, pain","pain",[.36,.48,.50,.30,.44,.64]],
+        ["028","spring arch, lifted, surprise","surprised",[.52,.78,.86,.82,.82,.42]],
+        ["029","wire wave, perplexed, confusion","confusion",[.28,.62,.64,.38,.28,.50]],
+        ["030","steel loop, returning, ambivalent","ambivalence",[.68,.72,.74,.54,.36,.58]],
+        ["031","iron wire, kinked, doubt","confusion",[.48,.56,.60,.36,.24,.70]],
+        ["032","metal ruler, flat, neutral","neutral",[.26,.28,.22,.24,.94,.58]],
+        ["033","steel bar, diagonal, severe","severe",[.34,.36,.16,.20,.46,.88]],
+        ["034","slag trace, heavy, sad","sad",[.88,.60,.28,.26,.34,.74]],
+        ["035","metal ribbon, graceful, pleasure","pleasure",[.18,.50,.72,.58,.66,.30]],
+        ["036","parallel wires, down arc, sad","sad",[.22,.46,.34,.30,.78,.26]],
+        ["037","broken rod, fragmented, despair","despair",[.84,.66,.46,.28,.20,.86]],
+        ["038","straight wire, neutral, calm","calm",[.20,.24,.20,.22,.70,.46]]
+      ],
+      eye: [
+        ["039","cracked resin, narrow, anger","anger",[.38,.58,.30,.12,.34,.88]],
+        ["040","bubble wrap, wide open, fear","fear",[.28,.92,.82,.96,.88,.36]],
+        ["041","gears, mechanical, apathy","apathy",[.52,.86,.64,.70,.84,.62]],
+        ["042","torn felt, wounded, despair","despair",[.78,.68,.42,.48,.28,.58]],
+        ["043","liquid ring, vacant, trance","vacuity",[.18,.56,.92,.92,.74,.32]],
+        ["044","plastic film, closed, repression","repression",[.42,.80,.46,.05,.50,.24]],
+        ["045","rock crack, sharp, threat","threat",[.84,.54,.34,.38,.40,.90]],
+        ["046","latex hole, focused, scrutiny","scrutiny",[.30,.72,.88,.62,.82,.46]],
+        ["047","zigzag wire, anxious, tension","anxiety",[.34,.74,.24,.24,.26,.94]],
+        ["048","metal spindle, cold, vigilance","vigilance",[.48,.50,.68,.58,.56,.64]],
+        ["049","stone slit, numb, repression","numbness",[.90,.42,.26,.14,.44,.70]],
+        ["050","soft fabric, sleepy, tender","tenderness",[.26,.60,.52,.26,.70,.20]],
+        ["051","torn leather, wounded, fury","wounded anger",[.72,.66,.44,.66,.24,.78]],
+        ["052","brushed metal, precise, judgment","judgment",[.22,.36,.58,.32,.94,.52]],
+        ["053","rock fissure, heavy, sorrow","sorrow",[.88,.44,.30,.18,.38,.72]],
+        ["054","glass spindle, open, wonder","wonder",[.12,.40,.96,.94,.96,.28]],
+        ["055","heavy block, tilted, skepticism","skepticism",[.56,.34,.18,.20,.18,.68]],
+        ["056","ink pupil, expanded, fear","abyssal fear",[.32,.88,.90,.98,.76,.42]],
+        ["057","scratched acrylic, sealed, alienation","alienation",[.46,.76,.70,.08,.62,.34]],
+        ["058","cracked mud, closed, depletion","depletion",[.94,.58,.24,.04,.48,.82]],
+        ["059","LED arc, artificial, optimism","artificial optimism",[.20,.94,.84,.78,.92,.40]],
+        ["060","metal ellipse, open, calm","calm",[.24,.30,.78,.82,.78,.30]],
+        ["061","coal fissure, narrow, oppression","oppression",[.92,.48,.28,.16,.30,.76]]
+      ],
+      nose: [
+        ["062","clear gel, melting, sad","sad",[.18,.42,.64,.28,.78,.22]],
+        ["063","hard ridge, sharp, anger","anger",[.36,.30,.18,.18,.90,.86]],
+        ["064","wet cone, tense, fear","fear",[.54,.72,.48,.44,.58,.80]],
+        ["065","stone mass, numb, apathy","apathy",[.82,.46,.28,.16,.66,.38]],
+        ["066","broken rock, damaged, pain","pain",[.92,.64,.22,.34,.26,.76]],
+        ["067","mechanical shell, cracked, breakdown","systemic breakdown",[.60,.86,.40,.38,.82,.68]],
+        ["068","wire knot, tangled, anxiety","anxiety",[.50,.88,.58,.42,.34,.64]],
+        ["069","sand form, eroding, humility","humility",[.76,.56,.36,.22,.62,.30]],
+        ["070","twisted latex, squeezed, suffocation","suffocation",[.34,.74,.76,.24,.30,.72]],
+        ["071","porous sponge, fragile, sensitivity","sensitivity",[.58,.92,.70,.78,.52,.26]],
+        ["072","dripping resin, downward, crying","crying",[.22,.52,.66,.36,.42,.28]],
+        ["073","rubber folds, scrunched, disgust","disgust",[.66,.78,.34,.18,.56,.82]],
+        ["074","machine nose, rational, cold","rationality",[.28,.40,.20,.14,.96,.74]],
+        ["075","stacked plates, proud, defensive","defensive pride",[.48,.82,.44,.26,.86,.56]],
+        ["076","soft resin, rounded, empathy","empathy",[.20,.48,.82,.46,.72,.18]]
+      ],
+      mouth: [
+        ["077","clay arc, downturned, despair","despair",[.62,.46,.10,.24,.88,.34]],
+        ["078","sponge slit, numb, disgust","disgust",[.78,.86,.34,.18,.58,.42]],
+        ["079","woven fabric, flat, calm","calm",[.38,.64,.48,.22,.78,.20]],
+        ["080","liquid metal, sealed, indifference","indifference",[.14,.24,.50,.04,.94,.48]],
+        ["081","sand arc, soft smile, happy","happy",[.56,.72,.78,.52,.76,.26]],
+        ["082","wax curve, asymmetric, smug","smugness",[.24,.44,.84,.18,.34,.36]],
+        ["083","black arch, heavy, sad","sad",[.34,.32,.08,.36,.92,.28]],
+        ["084","stone smile, bitter, forced joy","forced joy",[.88,.68,.76,.62,.58,.78]],
+        ["085","felt hole, silent scream, shock","shock",[.66,.74,.92,.98,.86,.30]],
+        ["086","melting ice, down arc, sorrow","melancholy",[.20,.52,.14,.42,.88,.22]],
+        ["087","wire smile, open, optimism","optimism",[.16,.28,.90,.72,.90,.30]],
+        ["088","USB port, rectangular, numb","numbness",[.30,.58,.50,.46,.94,.74]],
+        ["089","branch V, sharp, anguish","anguish",[.84,.50,.16,.74,.72,.86]],
+        ["090","nylon strap, relaxed, joy","serene joy",[.42,.70,.82,.70,.68,.24]],
+        ["091","steel cable, asymmetric, sarcasm","sarcasm",[.50,.66,.80,.68,.26,.58]],
+        ["092","broken carbon, jagged, agony","agony",[.92,.62,.44,.10,.38,.96]],
+        ["093","metal cut, manic, laughter","manic joy",[.74,.76,.88,.92,.80,.88]],
+        ["094","card slit, controlled, vigilance","vigilance",[.22,.36,.50,.08,.96,.44]],
+        ["095","plastic slit, one-sided, contempt","contempt",[.18,.48,.60,.20,.20,.70]],
+        ["096","clean cut, silent, restraint","restraint",[.28,.30,.50,.06,.92,.90]],
+        ["097","zipper mouth, trapped, scream","imprisoned scream",[.62,.90,.64,.56,.76,.82]],
+        ["098","short thread, closed, refusal","refusal",[.46,.42,.48,.02,.66,.34]],
+        ["099","steel rope, down V, suppression","suppression",[.70,.82,.12,.30,.42,.68]]
+      ]
     };
 
-    let targetDrift = 0;
-    let baseline = null;
-    let calibrationFrames = 0;
-    const CALIBRATION_TARGET = 45;
-    let baselineBuffer = [];
+    function makeArchiveDatabase() {
+      const db = [];
+      for (const part of PARTS) {
+        for (const row of archiveSpec[part]) {
+          const [id, label, emotion, f] = row;
+          db.push({
+            id,
+            src: `archive/${id}.png`,
+            part,
+            material: label.split(",")[0],
+            emotion,
+            label,
+            description: label,
+            features: {
+              roughness: f[0],
+              pattern: f[1],
+              curve: f[2],
+              openness: f[3],
+              symmetry: f[4],
+              sharpness: f[5]
+            }
+          });
+          matchUsage[id] = 0;
+        }
+      }
+      return db;
+    }
+
+    function preload() {
+      archiveDB = makeArchiveDatabase();
+
+      for (const item of archiveDB) {
+        archiveImages[item.id] = loadImage(
+          item.src,
+          () => {},
+          () => { archiveImages[item.id] = null; }
+        );
+      }
+    }
 
     function setup() {
       createCanvas(windowWidth, windowHeight);
 
       video = createCapture(
-        {
-          video: {
-            facingMode: "user"
-          },
-          audio: false
-        },
-        () => {
-          setStatus("camera active / loading facemesh…");
-        }
+        { video: { facingMode: "user" }, audio: false },
+        () => setStatus("camera active / loading facemesh…")
       );
 
       video.size(640, 480);
       video.hide();
 
-      facemesh = ml5.facemesh(video, () => {
-        setStatus("facemesh active");
-      });
+      facemesh = ml5.facemesh(
+        video,
+        { maxFaces: 10, detectionConfidence: 0.5 },
+        () => setStatus("facemesh active / waiting for faces")
+      );
 
-      facemesh.on("predict", (results) => {
+      facemesh.on("predict", results => {
         predictions = results;
       });
 
       textFont("Arial");
-      rectMode(CORNER);
-      noFill();
     }
 
     function draw() {
@@ -346,170 +324,48 @@
       image(video, 0, 0, width, height);
       pop();
 
-      fill(0, 110);
+      fill(0, 120);
       noStroke();
       rect(0, 0, width, height);
 
-      if (predictions.length > 0) {
-        const face = predictions[0];
-        analyzeEmotion(face);
-        drawFaceSystem(face);
-        drawFaceMetrics(face);
-      } else {
+      if (predictions.length === 0) {
         drawIdleState();
+        updateSummary([]);
+        return;
       }
+
+      let allResults = [];
+
+      for (let i = 0; i < predictions.length; i++) {
+        const result = analyzeFace(predictions[i], i);
+        allResults.push(result);
+        drawFaceArchiveFill(result);
+        drawFaceOverlay(predictions[i], result, i);
+        drawFaceReadingPanel(result);
+      }
+
+      updateSummary(allResults);
+      setStatus(`${predictions.length} face(s) detected / full archive matching active`);
     }
 
     function drawIdleState() {
+      noFill();
       stroke(255, 45);
       strokeWeight(1);
-      noFill();
-
-      const boxW = min(width * 0.34, 280);
-      const boxH = min(height * 0.48, 360);
-      rect(width / 2 - boxW / 2, height / 2 - boxH / 2, boxW, boxH, 18);
+      rectMode(CENTER);
+      rect(width / 2, height / 2, 280, 360, 14);
 
       noStroke();
       fill(255, 130);
       textAlign(CENTER, CENTER);
-      textSize(min(width, height) * 0.028);
-      text("face not detected", width / 2, height / 2 - 14);
-      textSize(min(width, height) * 0.016);
-      text("please stand in front of the mirror", width / 2, height / 2 + 18);
-
-      updateUI(0, 0, 0, 0, 0, "Waiting for a face.");
-      liveMetrics = null;
+      textSize(18);
+      text("face not detected", width / 2, height / 2 - 10);
+      textSize(12);
+      text("please stand in front of the mirror", width / 2, height / 2 + 20);
+      rectMode(CORNER);
     }
 
-    function drawFaceSystem(face) {
-      const pts = face.scaledMesh.map((p) => [mirrorX(mapX(p[0])), mapY(p[1])]);
-      const bbox = getBoundingBox(pts);
-
-      drawFeatureBoxes(face);
-      drawExpectedFace(face, bbox);
-
-      stroke(255, 24);
-      strokeWeight(1);
-      for (let i = 0; i < pts.length; i += 8) {
-        point(pts[i][0], pts[i][1]);
-      }
-    }
-
-    function drawFeatureBoxes(face) {
-      const anns = face.annotations;
-      drawBoxAroundPoints(anns.leftEyeUpper0.concat(anns.leftEyeLower0), color(255, 150));
-      drawBoxAroundPoints(anns.rightEyeUpper0.concat(anns.rightEyeLower0), color(255, 150));
-      drawBoxAroundPoints(anns.lipsUpperOuter.concat(anns.lipsLowerOuter), color(255, 175));
-      drawBoxAroundPoints(anns.leftEyebrowUpper, color(210, 100));
-      drawBoxAroundPoints(anns.rightEyebrowUpper, color(210, 100));
-    }
-
-    function drawBoxAroundPoints(points, c) {
-      let xs = [];
-      let ys = [];
-
-      for (let p of points) {
-        xs.push(mirrorX(mapX(p[0])));
-        ys.push(mapY(p[1]));
-      }
-
-      const minX = Math.min(...xs);
-      const maxX = Math.max(...xs);
-      const minY = Math.min(...ys);
-      const maxY = Math.max(...ys);
-
-      const t = frameCount * 0.04;
-      const jx = sin(t + minX * 0.02) * 0.7;
-      const jy = cos(t + minY * 0.02) * 0.7;
-
-      noFill();
-      stroke(c);
-      strokeWeight(1);
-      rect(minX - 6 + jx, minY - 6 + jy, maxX - minX + 12, maxY - minY + 12, 8);
-    }
-
-    function drawExpectedFace(face, bbox) {
-      const matchNorm = smoothTargetMatch / 100.0;
-
-      const cx = (bbox.minX + bbox.maxX) / 2;
-      const cy = (bbox.minY + bbox.maxY) / 2;
-      const fw = bbox.maxX - bbox.minX;
-      const fh = bbox.maxY - bbox.minY;
-
-      const driftAmount = map(matchNorm, 0, 1, 30, 6);
-      const driftX = sin(frameCount * 0.012) * driftAmount + targetDrift * 8;
-      const driftY = cos(frameCount * 0.015) * driftAmount * 0.58;
-
-      const x = cx + driftX;
-      const y = cy + driftY;
-
-      stroke(255, 190);
-      strokeWeight(1.25);
-      noFill();
-
-      const headW = fw * 0.72;
-      const headH = fh * 0.92;
-
-      beginShape();
-      vertex(x, y - headH * 0.52);
-      vertex(x + headW * 0.42, y - headH * 0.28);
-      vertex(x + headW * 0.48, y + headH * 0.08);
-      vertex(x + headW * 0.2, y + headH * 0.48);
-      vertex(x, y + headH * 0.58);
-      vertex(x - headW * 0.2, y + headH * 0.48);
-      vertex(x - headW * 0.48, y + headH * 0.08);
-      vertex(x - headW * 0.42, y - headH * 0.28);
-      endShape(CLOSE);
-
-      const eyeY = y - headH * 0.12;
-      const eyeSpacing = headW * 0.22;
-      const eyeW = headW * 0.18;
-      const eyeH = map(matchNorm, 0, 1, headH * 0.028, headH * 0.07);
-
-      drawGeomEye(x - eyeSpacing, eyeY, eyeW, eyeH);
-      drawGeomEye(x + eyeSpacing, eyeY, eyeW, eyeH);
-
-      line(
-        x - eyeSpacing - eyeW * 0.45,
-        eyeY - eyeH * 1.7,
-        x - eyeSpacing + eyeW * 0.45,
-        eyeY - eyeH * 1.4
-      );
-      line(
-        x + eyeSpacing - eyeW * 0.45,
-        eyeY - eyeH * 1.4,
-        x + eyeSpacing + eyeW * 0.45,
-        eyeY - eyeH * 1.7
-      );
-
-      beginShape();
-      vertex(x, y - headH * 0.02);
-      vertex(x - headW * 0.03, y + headH * 0.18);
-      vertex(x + headW * 0.05, y + headH * 0.22);
-      endShape();
-
-      const mouthY = y + headH * 0.23;
-      const mouthW = headW * 0.22;
-      const smileDepth = map(matchNorm, 0, 1, -3, 10);
-
-      beginShape();
-      vertex(x - mouthW / 2, mouthY);
-      quadraticVertex(x, mouthY + smileDepth, x + mouthW / 2, mouthY);
-      endShape();
-
-      stroke(255, 85);
-      line(x, y - headH * 0.52, x, y + headH * 0.58);
-    }
-
-    function drawGeomEye(x, y, w, h) {
-      beginShape();
-      vertex(x - w / 2, y);
-      quadraticVertex(x, y - h, x + w / 2, y);
-      quadraticVertex(x, y + h * 0.8, x - w / 2, y);
-      endShape(CLOSE);
-    }
-
-    function analyzeEmotion(face) {
+    function analyzeFace(face, index) {
       const anns = face.annotations;
 
       const mouthTop = avgPoint(anns.lipsUpperInner || anns.lipsUpperOuter);
@@ -525,8 +381,8 @@
       const leftBrow = avgPoint(anns.leftEyebrowUpper);
       const rightBrow = avgPoint(anns.rightEyebrowUpper);
 
-      const noseTip = anns.noseTip ? avgPoint(anns.noseTip) : avgPoint(anns.midwayBetweenEyes);
       const betweenEyes = avgPoint(anns.midwayBetweenEyes);
+      const noseTip = anns.noseTip ? avgPoint(anns.noseTip) : betweenEyes;
 
       const faceScale = max(
         dist2D(mouthLeft, mouthRight),
@@ -536,270 +392,651 @@
 
       const mouthOpen = dist2D(mouthTop, mouthBottom) / faceScale;
       const mouthWidth = dist2D(mouthLeft, mouthRight) / faceScale;
+      const mouthCenter = midpoint(mouthLeft, mouthRight);
+      const mouthCurve = constrain(
+        map((mouthCenter[1] - mouthTop[1]) / faceScale, -0.035, 0.065, 0, 1),
+        0, 1
+      );
+
       const leftEyeOpen = dist2D(leftEyeTop, leftEyeBottom) / faceScale;
       const rightEyeOpen = dist2D(rightEyeTop, rightEyeBottom) / faceScale;
       const eyeOpen = (leftEyeOpen + rightEyeOpen) * 0.5;
+      const eyeSymmetry = 1 - constrain(abs(leftEyeOpen - rightEyeOpen) / 0.055, 0, 1);
 
       const leftBrowLift = dist2D(leftBrow, leftEyeTop) / faceScale;
       const rightBrowLift = dist2D(rightBrow, rightEyeTop) / faceScale;
       const browLift = (leftBrowLift + rightBrowLift) * 0.5;
 
-      const eyeAsym = abs(leftEyeOpen - rightEyeOpen);
-      const mouthCenter = midpoint(mouthLeft, mouthRight);
-      const mouthLift = (mouthTop[1] - mouthCenter[1]) / faceScale;
-      const mouthCornerTilt = abs(mouthLeft[1] - mouthRight[1]) / faceScale;
+      const browAsym = abs(leftBrow[1] - rightBrow[1]) / faceScale;
+      const browCurve = constrain(map(browLift, 0.035, 0.18, 0.08, 0.96), 0, 1);
+      const browOpenness = constrain(map(browLift, 0.035, 0.18, 0.08, 0.96), 0, 1);
+      const browSharpness = constrain(map(browAsym, 0.00, 0.10, 0.12, 0.98), 0, 1);
+      const browPattern = constrain((browCurve * 0.5) + (browSharpness * 0.5), 0, 1);
+      const browRoughness = constrain(0.20 + browSharpness * 0.58 + (1 - eyeSymmetry) * 0.22, 0, 1);
 
-      if (!baseline && calibrationFrames < CALIBRATION_TARGET) {
-        calibrationFrames++;
-        baselineBuffer.push({
+      const noseLength = dist2D(betweenEyes, noseTip) / faceScale;
+
+      // Nose-sensitive measurements:
+      // These react to angle, shadow, local texture, and brightness.
+      const noseDx = (noseTip[0] - betweenEyes[0]) / faceScale;
+      const noseAngle = constrain(map(abs(noseDx), 0.00, 0.22, 0.05, 0.95), 0, 1);
+      const nosePatch = samplePatchStats(noseTip[0], noseTip[1], faceScale * 0.18, faceScale * 0.22);
+      const noseLeftPatch = samplePatchStats(noseTip[0] - faceScale * 0.16, noseTip[1], faceScale * 0.12, faceScale * 0.16);
+      const noseRightPatch = samplePatchStats(noseTip[0] + faceScale * 0.16, noseTip[1], faceScale * 0.12, faceScale * 0.16);
+      const noseShadow = constrain(abs(noseLeftPatch.avg - noseRightPatch.avg) / 95, 0, 1);
+      const noseBrightness = constrain(map(nosePatch.avg, 35, 210, 0, 1), 0, 1);
+      const noseTexture = constrain(map(nosePatch.variance, 2, 48, 0, 1), 0, 1);
+
+      const bbox = getBoundingBox(
+        face.scaledMesh.map(p => [mirrorX(mapX(p[0])), mapY(p[1])])
+      );
+
+      const faceW = max(bbox.maxX - bbox.minX, 1);
+      const faceH = max(bbox.maxY - bbox.minY, 1);
+
+      const skinRoughness = sampleSkinRoughness(bbox);
+      const skinPattern = constrain(skinRoughness * 0.75 + (1 - eyeSymmetry) * 0.25, 0, 1);
+
+      function browVector(singleLift, sideBias) {
+        const c = constrain(map(singleLift, 0.035, 0.18, 0.08, 0.96), 0, 1);
+        const sideSharpness = constrain(browSharpness * 0.65 + abs(sideBias) * 0.35, 0, 1);
+        return {
+          roughness: constrain(0.20 + sideSharpness * 0.58 + (1 - eyeSymmetry) * 0.22, 0, 1),
+          pattern: constrain(c * 0.48 + sideSharpness * 0.52, 0, 1),
+          curve: c,
+          openness: constrain(map(singleLift, 0.035, 0.18, 0.08, 0.96), 0, 1),
+          symmetry: constrain(1 - abs(sideBias), 0, 1),
+          sharpness: sideSharpness
+        };
+      }
+
+      function eyeVector(singleOpen, otherOpen) {
+        const sideAsym = abs(singleOpen - otherOpen) / 0.055;
+        return {
+          roughness: constrain(0.18 + sideAsym * 0.30 + abs(singleOpen - 0.055) * 3.1, 0, 1),
+          pattern: constrain(singleOpen * 8.0 + sideAsym * 0.22, 0, 1),
+          curve: constrain(map(singleOpen, 0.012, 0.10, 0.10, 0.98), 0, 1),
+          openness: constrain(map(singleOpen, 0.010, 0.105, 0.02, 0.99), 0, 1),
+          symmetry: constrain(1 - sideAsym, 0, 1),
+          sharpness: constrain(sideAsym * 0.45 + map(singleOpen, 0.012, 0.10, 0.16, 0.90), 0, 1)
+        };
+      }
+
+      const featureVectors = {
+        skin: {
+          roughness: skinRoughness,
+          pattern: skinPattern,
+          curve: constrain(0.25 + skinRoughness * 0.45, 0, 1),
+          openness: constrain(0.18 + skinPattern * 0.55, 0, 1),
+          symmetry: eyeSymmetry,
+          sharpness: constrain(skinRoughness * 0.9 + (1 - eyeSymmetry) * 0.1, 0, 1)
+        },
+        leftBrow: browVector(leftBrowLift, (leftBrow[1] - rightBrow[1]) / faceScale),
+        rightBrow: browVector(rightBrowLift, (rightBrow[1] - leftBrow[1]) / faceScale),
+        leftEye: eyeVector(leftEyeOpen, rightEyeOpen),
+        rightEye: eyeVector(rightEyeOpen, leftEyeOpen),
+        nose: {
+          roughness: constrain(noseTexture * 0.62 + noseShadow * 0.28 + (1 - eyeSymmetry) * 0.10, 0, 1),
+          pattern: constrain(noseBrightness * 0.34 + noseTexture * 0.34 + noseLength * 0.95, 0, 1),
+          curve: constrain(map(noseLength, 0.12, 0.54, 0.08, 0.95) + noseAngle * 0.18, 0, 1),
+          openness: constrain(noseShadow * 0.55 + (1 - noseBrightness) * 0.25 + noseTexture * 0.20, 0, 1),
+          symmetry: constrain(1 - noseAngle, 0, 1),
+          sharpness: constrain(noseAngle * 0.42 + noseShadow * 0.34 + noseTexture * 0.42, 0, 1)
+        },
+        mouth: {
+          roughness: constrain(0.14 + mouthOpen * 2.4 + abs(mouthCurve - 0.5) * 0.35, 0, 1),
+          pattern: constrain(mouthWidth * 1.2 + mouthOpen * 2.8, 0, 1),
+          curve: mouthCurve,
+          openness: constrain(map(mouthOpen, 0.004, 0.13, 0.02, 0.99), 0, 1),
+          symmetry: eyeSymmetry,
+          sharpness: constrain(abs(mouthCurve - 0.5) * 1.55 + mouthOpen * 1.35, 0, 1)
+        }
+      };
+
+      // Aliases for old summary / target logic.
+      featureVectors.brow = averageVector(featureVectors.leftBrow, featureVectors.rightBrow);
+      featureVectors.eye = averageVector(featureVectors.leftEye, featureVectors.rightEye);
+
+      let matches = {};
+      matches.skin = findBestArchiveMatch("skin", featureVectors.skin, index, "skin");
+      matches.leftBrow = findBestArchiveMatch("leftBrow", featureVectors.leftBrow, index, "brow");
+      matches.rightBrow = findBestArchiveMatch("rightBrow", featureVectors.rightBrow, index, "brow");
+      matches.leftEye = findBestArchiveMatch("leftEye", featureVectors.leftEye, index, "eye");
+      matches.rightEye = findBestArchiveMatch("rightEye", featureVectors.rightEye, index, "eye");
+      matches.nose = findBestArchiveMatch("nose", featureVectors.nose, index, "nose");
+      matches.mouth = findBestArchiveMatch("mouth", featureVectors.mouth, index, "mouth");
+
+      // Aliases for compact UI.
+      matches.brow = matches.leftBrow;
+      matches.eye = matches.leftEye;
+
+      const emotionScores = emotionFromMatches(matches, featureVectors);
+      const dominantEmotion = getDominantEmotion(emotionScores);
+      const targetMatch = calculateTargetMatch(featureVectors, matches);
+
+      const leftEyeCenter = midpoint(leftEyeTop, leftEyeBottom);
+      const rightEyeCenter = midpoint(rightEyeTop, rightEyeBottom);
+
+      return {
+        index,
+        bbox,
+        faceW,
+        faceH,
+        featureVectors,
+        metrics: {
           mouthOpen,
+          mouthCurve,
           mouthWidth,
           eyeOpen,
-          browLift
-        });
+          leftEyeOpen,
+          rightEyeOpen,
+          eyeSymmetry,
+          browLift,
+          leftBrowLift,
+          rightBrowLift,
+          browAsym,
+          noseLength,
+          noseAngle,
+          noseShadow,
+          noseBrightness,
+          noseTexture,
+          skinRoughness
+        },
+        matches,
+        emotionScores,
+        dominantEmotion,
+        targetMatch,
+        positions: {
+          skin: { x: bbox.minX + faceW / 2, y: bbox.minY + faceH / 2 },
+          leftBrow: toScreen(leftBrow),
+          rightBrow: toScreen(rightBrow),
+          leftEye: toScreen(leftEyeCenter),
+          rightEye: toScreen(rightEyeCenter),
+          nose: toScreen(noseTip),
+          mouth: toScreen(mouthCenter)
+        },
+        angles: {
+          leftBrow: 0,
+          rightBrow: 0,
+          leftEye: 0,
+          rightEye: 0,
+          nose: 0,
+          mouth: 0
+        }
+      };
+    }
 
-        if (calibrationFrames >= CALIBRATION_TARGET) {
-          baseline = averageBaseline(baselineBuffer);
-          setStatus("facemesh active / baseline captured");
+    function findBestArchiveMatch(part, vector, faceIndex = 0, archivePart = null) {
+      const candidates = archiveDB.filter(item => item.part === (archivePart || part));
+      let scored = [];
+      const key = `${faceIndex}_${part}`;
+
+      // Nose-specific smoothing:
+      // It still reacts to small angle / shadow / length changes,
+      // but the values are softened across frames so it does not jump nonstop.
+      let activeVector = vector;
+      if (part === "nose") {
+        if (!smoothedFeatureVectors[key]) {
+          smoothedFeatureVectors[key] = { ...vector };
         } else {
-          setStatus(`calibrating face model… ${calibrationFrames}/${CALIBRATION_TARGET}`);
+          for (const k in vector) {
+            smoothedFeatureVectors[key][k] =
+              smoothedFeatureVectors[key][k] * NOSE_SMOOTHING +
+              vector[k] * (1 - NOSE_SMOOTHING);
+          }
+        }
+        activeVector = smoothedFeatureVectors[key];
+      }
+
+      for (const item of candidates) {
+        const f = item.features;
+        const usage = matchUsage[item.id] || 0;
+
+        let d =
+          abs(activeVector.roughness - f.roughness) * 1.00 +
+          abs(activeVector.pattern - f.pattern) * 1.05 +
+          abs(activeVector.curve - f.curve) * 1.25 +
+          abs(activeVector.openness - f.openness) * 1.15 +
+          abs(activeVector.symmetry - f.symmetry) * 0.75 +
+          abs(activeVector.sharpness - f.sharpness) * 1.00;
+
+        if (part === "nose") {
+          // Less random movement and weaker usage penalty for nose,
+          // so it does not rotate images too quickly.
+          d += usage * NOSE_USAGE_BALANCE;
+          d += random(-NOSE_RANDOMNESS, NOSE_RANDOMNESS);
+        } else {
+          d += usage * USAGE_BALANCE;
+          d += random(-MATCH_RANDOMNESS, MATCH_RANDOMNESS);
+        }
+
+        scored.push({ item, score: d });
+      }
+
+      scored.sort((a, b) => a.score - b.score);
+
+      let chosen = scored[0].item;
+      let chosenScore = scored[0].score;
+
+      const previousId = stableMatches[key];
+      const previousScore = stableScores[key];
+      const margin = part === "nose" ? NOSE_SWITCH_MARGIN : SWITCH_MARGIN;
+
+      // Stabilizer:
+      // Keep the previous match unless the new one is clearly better.
+      // For nose, this threshold is stronger, so tiny webcam noise will not cause flicker.
+      if (previousId && previousScore !== undefined) {
+        const previousCandidate = scored.find(s => s.item.id === previousId);
+        if (previousCandidate && scored[0].score > previousCandidate.score - margin) {
+          chosen = previousCandidate.item;
+          chosenScore = previousCandidate.score;
         }
       }
 
-      const b = baseline || {
-        mouthOpen: 0.05,
-        mouthWidth: 0.38,
-        eyeOpen: 0.06,
-        browLift: 0.07
-      };
-
-      const mouthOpenDelta = mouthOpen - b.mouthOpen;
-      const mouthWidthDelta = mouthWidth - b.mouthWidth;
-      const eyeOpenDelta = eyeOpen - b.eyeOpen;
-      const browLiftDelta = browLift - b.browLift;
-
-      const smileSignal = constrain(
-        map(mouthWidthDelta, -0.03, 0.08, 0, 1) +
-        map(-mouthLift, -0.01, 0.04, 0, 1) * 0.8 -
-        map(mouthOpenDelta, 0.01, 0.08, 0, 0.4),
-        0,
-        1.2
-      );
-
-      const excitementSignal = constrain(
-        map(mouthOpenDelta, 0.0, 0.09, 0, 1) * 0.9 +
-        map(eyeOpenDelta, -0.01, 0.04, 0, 1) * 0.8 +
-        map(browLiftDelta, -0.01, 0.04, 0, 1) * 0.5,
-        0,
-        1.4
-      );
-
-      const anxietySignal = constrain(
-        map(eyeAsym, 0.0, 0.03, 0, 1) * 0.8 +
-        map(browLiftDelta, -0.01, 0.05, 0, 1) * 0.6 +
-        map(mouthCornerTilt, 0.0, 0.03, 0, 1) * 0.5 +
-        map(mouthOpenDelta, 0.01, 0.06, 0, 1) * 0.25,
-        0,
-        1.4
-      );
-
-      const calmSignal = constrain(
-        map(abs(eyeOpenDelta), 0.04, 0.0, 0, 1) * 0.6 +
-        map(abs(mouthOpenDelta), 0.06, 0.0, 0, 1) * 0.6 +
-        map(eyeAsym, 0.03, 0.0, 0, 1) * 0.65 +
-        map(abs(browLiftDelta), 0.04, 0.0, 0, 1) * 0.4,
-        0,
-        1.5
-      );
-
-      let happy = 18 + smileSignal * 55;
-      let excited = 12 + excitementSignal * 52;
-      let anxious = 12 + anxietySignal * 48;
-      let calm = 14 + calmSignal * 50;
-
-      const total = happy + excited + anxious + calm;
-      happy = (happy / total) * 100;
-      excited = (excited / total) * 100;
-      anxious = (anxious / total) * 100;
-      calm = (calm / total) * 100;
-
-      const targetDistance =
-        abs(smileSignal - 0.82) * 0.34 +
-        abs(excitementSignal - 0.42) * 0.12 +
-        abs(anxietySignal - 0.10) * 0.25 +
-        abs(eyeAsym - 0.005) * 8.5 +
-        abs(mouthOpenDelta - 0.015) * 8.0 +
-        abs(browLiftDelta - 0.01) * 8.0;
-
-      let targetMatch = 100 - targetDistance * 100;
-      targetMatch += sin(frameCount * 0.025) * 1.2;
-      targetMatch = constrain(targetMatch, 12, 94);
-
-      if (frameCount % 15 === 0) {
-        targetDrift = lerp(targetDrift, random(-1, 1), 0.35);
+      if (previousId !== chosen.id) {
+        matchUsage[chosen.id] = (matchUsage[chosen.id] || 0) + 1;
       }
 
-      smoothHappy = lerp(smoothHappy, happy, 0.1);
-      smoothExcited = lerp(smoothExcited, excited, 0.1);
-      smoothAnxious = lerp(smoothAnxious, anxious, 0.1);
-      smoothCalm = lerp(smoothCalm, calm, 0.1);
-      smoothTargetMatch = lerp(smoothTargetMatch, targetMatch, 0.07);
+      stableMatches[key] = chosen.id;
+      stableScores[key] = chosenScore;
 
-      const leftCheek = anns.leftCheek ? avgPoint(anns.leftCheek) : mouthLeft;
-      const rightCheek = anns.rightCheek ? avgPoint(anns.rightCheek) : mouthRight;
-      const faceWidth = dist2D(leftCheek, rightCheek) / faceScale;
-      const faceHeight = dist2D(betweenEyes, mouthBottom) / faceScale;
-      const faceRatio = faceWidth / max(faceHeight, 0.0001);
-
-      const mouthCurve = constrain(map(-mouthLift, -0.02, 0.05, 0, 100), 0, 100);
-      const mouthOpenScore = constrain(map(mouthOpenDelta, -0.01, 0.08, 0, 100), 0, 100);
-      const eyeOpenScore = constrain(map(eyeOpenDelta, -0.015, 0.04, 0, 100), 0, 100);
-      const symmetryScore = constrain(map(eyeAsym, 0.03, 0.0, 0, 100), 0, 100);
-      const browLiftScore = constrain(map(browLiftDelta, -0.015, 0.04, 0, 100), 0, 100);
-
-      metricSmooth.mouthCurve = lerp(metricSmooth.mouthCurve, mouthCurve, 0.12);
-      metricSmooth.mouthOpenScore = lerp(metricSmooth.mouthOpenScore, mouthOpenScore, 0.12);
-      metricSmooth.eyeOpenScore = lerp(metricSmooth.eyeOpenScore, eyeOpenScore, 0.12);
-      metricSmooth.symmetryScore = lerp(metricSmooth.symmetryScore, symmetryScore, 0.12);
-      metricSmooth.browLiftScore = lerp(metricSmooth.browLiftScore, browLiftScore, 0.12);
-      metricSmooth.faceRatio = lerp(metricSmooth.faceRatio, faceRatio, 0.08);
-
-      liveMetrics = {
-        mouthCurve: metricSmooth.mouthCurve,
-        mouthOpenScore: metricSmooth.mouthOpenScore,
-        eyeOpenScore: metricSmooth.eyeOpenScore,
-        symmetryScore: metricSmooth.symmetryScore,
-        browLiftScore: metricSmooth.browLiftScore,
-        faceRatio: metricSmooth.faceRatio,
-        mouthCenter,
-        mouthLeft,
-        mouthRight,
-        leftEyeCenter: midpoint(leftEyeTop, leftEyeBottom),
-        rightEyeCenter: midpoint(rightEyeTop, rightEyeBottom),
-        browCenter: midpoint(leftBrow, rightBrow),
-        betweenEyes,
-        noseTip
+      return {
+        ...chosen,
+        similarity: constrain(1 - chosenScore / 5.8, 0, 1)
       };
-
-      const note = buildReadingNote(
-        smoothHappy,
-        smoothExcited,
-        smoothAnxious,
-        smoothCalm,
-        smoothTargetMatch
-      );
-
-      updateUI(
-        smoothHappy,
-        smoothExcited,
-        smoothAnxious,
-        smoothCalm,
-        smoothTargetMatch,
-        note
-      );
     }
 
-    function drawFaceMetrics() {
-      if (!liveMetrics) return;
+    function emotionFromMatches(matches, featureVectors = null) {
+      const scores = {};
 
-      const m = liveMetrics;
-
-      const mouthPos = toScreen(m.mouthCenter);
-      const leftEyePos = toScreen(m.leftEyeCenter);
-      const rightEyePos = toScreen(m.rightEyeCenter);
-      const browPos = toScreen(m.browCenter);
-      const nosePos = toScreen(m.noseTip);
-
-      drawMetricLabel(
-        mouthPos.x,
-        mouthPos.y + 10,
-        mouthPos.x + 88,
-        mouthPos.y + 34,
-        `mouth curve   ${nf(m.mouthCurve, 2, 0)}`
-      );
-
-      drawMetricLabel(
-        mouthPos.x - 10,
-        mouthPos.y + 16,
-        mouthPos.x - 156,
-        mouthPos.y + 56,
-        `mouth openness   ${nf(m.mouthOpenScore, 2, 0)}`
-      );
-
-      drawMetricLabel(
-        leftEyePos.x - 10,
-        leftEyePos.y,
-        leftEyePos.x - 148,
-        leftEyePos.y - 28,
-        `eye openness   ${nf(m.eyeOpenScore, 2, 0)}`
-      );
-
-      drawMetricLabel(
-        rightEyePos.x + 8,
-        rightEyePos.y,
-        rightEyePos.x + 118,
-        rightEyePos.y - 28,
-        `symmetry   ${nf(m.symmetryScore, 2, 0)}`
-      );
-
-      drawMetricLabel(
-        browPos.x,
-        browPos.y - 8,
-        browPos.x + 112,
-        browPos.y - 60,
-        `brow lift   ${nf(m.browLiftScore, 2, 0)}`
-      );
-
-      drawMetricLabel(
-        nosePos.x,
-        nosePos.y,
-        nosePos.x + 118,
-        nosePos.y + 10,
-        `face ratio   ${nf(m.faceRatio, 1, 2)}`
-      );
-    }
-
-    function buildReadingNote(h, e, a, c, tm) {
-      const topEmotion = getTopEmotion(h, e, a, c);
-      let matchText = "";
-
-      if (tm < 30) {
-        matchText = "The current face resists the preferred template.";
-      } else if (tm < 55) {
-        matchText = "The face is partially legible to the system.";
-      } else if (tm < 75) {
-        matchText = "The face is becoming easier for the system to classify.";
-      } else {
-        matchText = "The current face closely fits the system’s preferred expression pattern.";
+      function add(emotion, amount) {
+        if (!scores[emotion]) scores[emotion] = 0;
+        scores[emotion] += max(0, amount);
       }
 
-      return `Dominant reading: ${topEmotion}. ${matchText}`;
-    }
-
-    function getTopEmotion(h, e, a, c) {
-      const items = [
-        { name: "happy", value: h },
-        { name: "excited", value: e },
-        { name: "anxious", value: a },
-        { name: "calm", value: c }
+      // Archive still matters, but it is now weaker.
+      // The live face movement should decide the main reading.
+      const weightedParts = [
+        ["skin", 0.25],
+        ["leftBrow", 0.32],
+        ["rightBrow", 0.32],
+        ["leftEye", 0.35],
+        ["rightEye", 0.35],
+        ["nose", 0.28],
+        ["mouth", 0.42]
       ];
-      items.sort((x, y) => y.value - x.value);
-      return items[0].name;
+
+      for (const [key, weight] of weightedParts) {
+        const m = matches[key];
+        if (!m) continue;
+        add(normalizeEmotion(m.emotion), m.similarity * weight);
+      }
+
+      if (featureVectors) {
+        const mouth = featureVectors.mouth;
+        const eye = featureVectors.eye;
+        const brow = featureVectors.brow;
+        const skin = featureVectors.skin;
+        const nose = featureVectors.nose;
+
+        const smile = mouth.curve;
+        const mouthOpen = mouth.openness;
+        const eyeOpen = eye.openness;
+        const browLift = brow.openness;
+        const browTension = brow.sharpness;
+        const asym = 1 - min(mouth.symmetry, eye.symmetry, brow.symmetry);
+        const skinNoise = skin.roughness;
+        const noseTension = nose.sharpness;
+
+        // These rules are intentionally simple and visible.
+        // They are not truth. They are the system's forced interpretation.
+
+        // HAPPY: upturned mouth, not too much tension.
+        add("happy", map(smile, 0.58, 0.95, 0, 3.6) * map(mouthOpen, 0.05, 0.75, 1.2, 0.55));
+
+        // SAD: downturned mouth + lower energy / less eye openness.
+        add("sad", map(0.42 - smile, 0, 0.42, 0, 3.4) + map(0.42 - eyeOpen, 0, 0.42, 0, 1.2));
+
+        // SHOCK: mouth very open + eyes open.
+        add("shock", map(mouthOpen, 0.58, 0.98, 0, 3.8) + map(eyeOpen, 0.68, 0.98, 0, 1.8));
+
+        // FEAR: eyes and brows open, but mouth not necessarily smiling.
+        add("fear", map(eyeOpen, 0.62, 0.98, 0, 2.2) + map(browLift, 0.62, 0.98, 0, 2.0) + map(skinNoise, 0.55, 1.0, 0, 0.8));
+
+        // ANGRY: brow tension + low/flat mouth + nose tension.
+        add("angry", map(browTension, 0.62, 0.98, 0, 2.8) + map(0.55 - smile, 0, 0.55, 0, 1.3) + map(noseTension, 0.60, 0.98, 0, 1.0));
+
+        // DISGUST: nose/tension + mouth not open.
+        add("disgust", map(noseTension, 0.65, 0.98, 0, 2.3) * map(0.55 - mouthOpen, 0, 0.55, 0.4, 1.1));
+
+        // SKEPTICISM: asymmetry, one-sided reading.
+        add("skepticism", map(asym, 0.28, 0.85, 0, 2.9));
+
+        // CALM: low openness, low tension, high symmetry.
+        const calmBase =
+          map(0.34 - mouthOpen, 0, 0.34, 0, 1.2) +
+          map(0.44 - browTension, 0, 0.44, 0, 1.1) +
+          map(min(mouth.symmetry, eye.symmetry), 0.55, 0.98, 0, 1.4) +
+          map(0.45 - skinNoise, 0, 0.45, 0, 0.8);
+        add("calm", calmBase);
+
+        // PAIN: high tension, asymmetry, low smile.
+        add("pain", map(browTension + noseTension + asym, 1.55, 2.6, 0, 2.2) + map(0.38 - smile, 0, 0.38, 0, 0.8));
+      }
+
+      let total = Object.values(scores).reduce((a, b) => a + b, 0);
+      if (total <= 0) return { calm: 100 };
+
+      for (const key in scores) {
+        scores[key] = (scores[key] / total) * 100;
+      }
+
+      return scores;
     }
 
-    function updateUI(h, e, a, c, targetMatch, note) {
-      setMetric("happyVal", "happyBar", h);
-      setMetric("excitedVal", "excitedBar", e);
-      setMetric("anxiousVal", "anxiousBar", a);
-      setMetric("calmVal", "calmBar", c);
-      setMetric("targetMatchVal", "targetBar", targetMatch);
-      document.getElementById("readingNote").innerText = note;
+    function normalizeEmotion(emotion) {
+      const e = String(emotion || "calm").toLowerCase();
+
+      if (e.includes("happy") || e.includes("joy") || e.includes("optimism") || e.includes("pleasure")) return "happy";
+      if (e.includes("sad") || e.includes("sorrow") || e.includes("despair") || e.includes("melancholy") || e.includes("crying")) return "sad";
+      if (e.includes("fear") || e.includes("anxious") || e.includes("anxiety") || e.includes("suffocation") || e.includes("oppression")) return "fear";
+      if (e.includes("anger") || e.includes("angry") || e.includes("rage") || e.includes("severe") || e.includes("threat")) return "angry";
+      if (e.includes("disgust")) return "disgust";
+      if (e.includes("shock") || e.includes("surprise") || e.includes("wonder") || e.includes("scream")) return "shock";
+      if (e.includes("contempt") || e.includes("skepticism") || e.includes("sarcasm") || e.includes("refusal")) return "skepticism";
+      if (e.includes("calm") || e.includes("neutral") || e.includes("indifference") || e.includes("apathy") || e.includes("numb")) return "calm";
+      if (e.includes("pain") || e.includes("agony") || e.includes("trauma")) return "pain";
+
+      return e;
     }
 
-    function setMetric(valueId, barId, value) {
-      const v = constrain(value, 0, 100);
-      document.getElementById(valueId).innerText = `${nf(v, 2, 0)}%`;
-      document.getElementById(barId).style.width = `${v}%`;
+    function calculateTargetMatch(featureVectors, matches) {
+      const keys = ["skin", "leftBrow", "rightBrow", "leftEye", "rightEye", "nose", "mouth"];
+      let similarityTotal = 0;
+
+      for (const key of keys) {
+        similarityTotal += matches[key].similarity;
+      }
+
+      const averageSimilarity = similarityTotal / keys.length;
+
+      const systemPreference =
+        (1 - featureVectors.skin.roughness) * 0.16 +
+        featureVectors.brow.symmetry * 0.16 +
+        featureVectors.eye.openness * 0.18 +
+        featureVectors.nose.symmetry * 0.16 +
+        featureVectors.mouth.curve * 0.18 +
+        featureVectors.mouth.openness * 0.16;
+
+      return constrain((averageSimilarity * 0.62 + systemPreference * 0.38) * 100, 0, 98);
+    }
+
+    function drawFaceOverlay(face, result, faceIndex) {
+      const pts = face.scaledMesh.map(p => [mirrorX(mapX(p[0])), mapY(p[1])]);
+      const bbox = result.bbox;
+
+      noFill();
+      stroke(255, 160);
+      strokeWeight(1.2);
+      rect(bbox.minX, bbox.minY, bbox.maxX - bbox.minX, bbox.maxY - bbox.minY, 10);
+
+      stroke(255, 35);
+      strokeWeight(1);
+      for (let i = 0; i < pts.length; i += 9) {
+        point(pts[i][0], pts[i][1]);
+      }
+    }
+
+    function drawFaceArchiveFill(result) {
+      const bbox = result.bbox;
+      const faceW = result.faceW;
+      const faceH = result.faceH;
+
+      // 1. Skin is the lowest archive layer. It fills the whole detected face box.
+      const skinImg = archiveImages[result.matches.skin.id];
+      if (skinImg) {
+        push();
+        tint(255, 105);
+        imageMode(CENTER);
+        image(skinImg, result.positions.skin.x, result.positions.skin.y, faceW * 1.05, faceH * 1.05);
+        noTint();
+        pop();
+      }
+
+      // 2. Feature images are placed directly over their detected facial regions.
+      drawFeatureImage(result.matches.leftEye, result.positions.leftEye, faceW * 0.23, faceH * 0.105, result.angles.leftEye, 205);
+      drawFeatureImage(result.matches.rightEye, result.positions.rightEye, faceW * 0.23, faceH * 0.105, result.angles.rightEye, 205);
+
+      drawFeatureImage(result.matches.leftBrow, result.positions.leftBrow, faceW * 0.25, faceH * 0.075, result.angles.leftBrow, 215);
+      drawFeatureImage(result.matches.rightBrow, result.positions.rightBrow, faceW * 0.25, faceH * 0.075, result.angles.rightBrow, 215);
+
+      drawFeatureImage(result.matches.nose, result.positions.nose, faceW * 0.20, faceH * 0.25, result.angles.nose, 210);
+      drawFeatureImage(result.matches.mouth, result.positions.mouth, faceW * 0.34, faceH * 0.13, result.angles.mouth, 220);
+
+
+    }
+
+    function drawFeatureImage(match, pos, w, h, angle = 0, alpha = 210) {
+      const img = archiveImages[match.id];
+      if (!img) {
+        push();
+        noStroke();
+        fill(35, 190);
+        rectMode(CENTER);
+        rect(pos.x, pos.y, w, h, 6);
+        fill(255, 120);
+        textSize(8);
+        textAlign(CENTER, CENTER);
+        text("missing", pos.x, pos.y);
+        pop();
+        return;
+      }
+
+      push();
+      translate(pos.x, pos.y);
+      rotate(angle);
+      imageMode(CENTER);
+      tint(255, alpha);
+      image(img, 0, 0, w, h);
+      noTint();
+
+      // outline of the filled feature window
+      noFill();
+      stroke(255, 90);
+      strokeWeight(0.8);
+      rectMode(CENTER);
+      rect(0, 0, w, h, 5);
+      pop();
+    }
+
+    function drawFaceReadingPanel(result) {
+      const x = constrain(result.bbox.minX, 10, width - 330);
+      const y = constrain(result.bbox.minY - 98, 10, height - 110);
+      const w = min(320, max(230, result.faceW * 1.15));
+      const h = 82;
+
+      const phrase = buildMaterialPhrase(result);
+      const critique = buildCritiqueSentence(result);
+
+      push();
+      noStroke();
+      fill(0, 178);
+      rect(x, y, w, h, 12);
+
+      stroke(255, 55);
+      noFill();
+      rect(x, y, w, h, 12);
+
+      noStroke();
+      fill(255, 230);
+      textAlign(LEFT, TOP);
+      textSize(11);
+      text(`overall reading: ${result.dominantEmotion}`, x + 12, y + 10, w - 24, 16);
+
+      fill(255, 172);
+      textSize(9.5);
+      text(phrase, x + 12, y + 30, w - 24, 20);
+
+      fill(255, 220);
+      textSize(10.5);
+      text(critique, x + 12, y + 56, w - 24, 18);
+      pop();
+    }
+
+    function buildMaterialPhrase(result) {
+      const keys = ["skin", "leftBrow", "rightBrow", "leftEye", "rightEye", "nose", "mouth"];
+      const words = [];
+
+      for (const key of keys) {
+        const m = result.matches[key];
+        const labelParts = m.label.split(",").map(s => s.trim());
+        if (labelParts.length >= 2) {
+          words.push(labelParts[0] + " / " + labelParts[1]);
+        } else {
+          words.push(m.label);
+        }
+      }
+
+      return words.join(" · ");
+    }
+
+    function buildCritiqueSentence(result) {
+      const key = `face_${result.index}`;
+      const nextSentence = buildRawCritiqueSentence(result);
+      const current = lockedCritiques[key];
+
+      // Keep each sentence for at least 3 seconds.
+      if (!current || frameCount - current.frame > CRITIQUE_HOLD_FRAMES) {
+        lockedCritiques[key] = {
+          sentence: nextSentence,
+          frame: frameCount
+        };
+      }
+
+      return lockedCritiques[key].sentence;
+    }
+
+    function buildRawCritiqueSentence(result) {
+      const all = [
+        result.matches.skin,
+        result.matches.leftBrow,
+        result.matches.rightBrow,
+        result.matches.leftEye,
+        result.matches.rightEye,
+        result.matches.nose,
+        result.matches.mouth
+      ];
+
+      const joined = all.map(m => `${m.label} ${m.emotion}`).join(" ").toLowerCase();
+      const emotion = result.dominantEmotion;
+
+      let verb = "compressing";
+      let object = "feeling into a readable surface";
+
+      if (emotion === "fear" || joined.includes("suffocation") || joined.includes("oppression")) {
+        verb = "training";
+        object = "panic into evidence";
+      } else if (emotion === "angry" || joined.includes("rage") || joined.includes("threat")) {
+        verb = "polishing";
+        object = "anger into a useful signal";
+      } else if (emotion === "sad" || joined.includes("melancholy") || joined.includes("crying")) {
+        verb = "flattening";
+        object = "sadness into a surface defect";
+      } else if (emotion === "calm" || joined.includes("neutral") || joined.includes("indifference")) {
+        verb = "performing";
+        object = "neutrality as obedience";
+      } else if (emotion === "happy" || joined.includes("joy") || joined.includes("optimism")) {
+        verb = "selling";
+        object = "pleasure back to the system";
+      } else if (emotion === "skepticism" || joined.includes("contempt") || joined.includes("sarcasm") || joined.includes("refusal")) {
+        verb = "hiding";
+        object = "refusal inside a measurable expression";
+      } else if (emotion === "shock" || joined.includes("scream")) {
+        verb = "opening";
+        object = "shock for the camera";
+      } else if (emotion === "disgust") {
+        verb = "turning";
+        object = "disgust into technical texture";
+      } else if (emotion === "pain") {
+        verb = "archiving";
+        object = "pain as proof of legibility";
+      } else if (joined.includes("judgment") || joined.includes("rational") || joined.includes("mechanical")) {
+        verb = "disciplining";
+        object = "thought into machine-readable order";
+      }
+
+      return `${verb} ${object}.`;
+    }
+
+    function updateSummary(results) {
+      // Left UI is hidden in this version.
+      // Each detected face now carries its own reading panel.
+      return;
+    }
+
+    function samplePatchStats(cx, cy, rx, ry) {
+      const cols = 4;
+      const rows = 4;
+      let values = [];
+
+      for (let iy = 0; iy < rows; iy++) {
+        for (let ix = 0; ix < cols; ix++) {
+          const px = floor(constrain(cx - rx + (ix / (cols - 1)) * rx * 2, 0, video.width - 1));
+          const py = floor(constrain(cy - ry + (iy / (rows - 1)) * ry * 2, 0, video.height - 1));
+          const c = video.get(px, py);
+          const b = (red(c) + green(c) + blue(c)) / 3;
+          values.push(b);
+        }
+      }
+
+      const avg = values.reduce((a, b) => a + b, 0) / values.length;
+      const variance = sqrt(values.reduce((a, b) => a + pow(b - avg, 2), 0) / values.length);
+
+      return { avg, variance };
+    }
+
+    function sampleSkinRoughness(bbox) {
+      const sampleCount = 16;
+      let values = [];
+
+      for (let i = 0; i < sampleCount; i++) {
+        const x = floor(map(i % 4, 0, 3, bbox.minX + 20, bbox.maxX - 20));
+        const y = floor(map(floor(i / 4), 0, 3, bbox.minY + 30, bbox.maxY - 30));
+
+        const videoX = floor(map(width - x, 0, width, 0, video.width));
+        const videoY = floor(map(y, 0, height, 0, video.height));
+
+        const c = video.get(videoX, videoY);
+        const brightness = (red(c) + green(c) + blue(c)) / 3;
+        values.push(brightness);
+      }
+
+      let avg = values.reduce((a, b) => a + b, 0) / values.length;
+      let variance = values.reduce((a, b) => a + pow(b - avg, 2), 0) / values.length;
+      return constrain(map(sqrt(variance), 0, 55, 0, 1), 0, 1);
+    }
+
+    function getDominantEmotion(scores) {
+      let best = "calm";
+      let bestValue = -1;
+      for (const key in scores) {
+        if (scores[key] > bestValue) {
+          best = key;
+          bestValue = scores[key];
+        }
+      }
+      return best;
+    }
+
+    function averageVector(a, b) {
+      return {
+        roughness: (a.roughness + b.roughness) / 2,
+        pattern: (a.pattern + b.pattern) / 2,
+        curve: (a.curve + b.curve) / 2,
+        openness: (a.openness + b.openness) / 2,
+        symmetry: (a.symmetry + b.symmetry) / 2,
+        sharpness: (a.sharpness + b.sharpness) / 2
+      };
     }
 
     function setStatus(message) {
@@ -807,55 +1044,15 @@
     }
 
     function toScreen(point) {
-      return {
-        x: mirrorX(mapX(point[0])),
-        y: mapY(point[1])
-      };
+      return { x: mirrorX(mapX(point[0])), y: mapY(point[1]) };
     }
 
-    function drawMetricLabel(x1, y1, x2, y2, label) {
-      stroke(255, 90);
-      strokeWeight(1);
-      noFill();
-      line(x1, y1, x2, y2);
-
-      const padX = 8;
-      const padY = 6;
-      textSize(11);
-      textAlign(LEFT, CENTER);
-
-      const tw = textWidth(label);
-      const boxW = tw + padX * 2;
-      const boxH = 24;
-
-      noStroke();
-      fill(0, 170);
-      rect(x2, y2 - boxH / 2, boxW, boxH, 6);
-
-      stroke(255, 70);
-      noFill();
-      rect(x2, y2 - boxH / 2, boxW, boxH, 6);
-
-      noStroke();
-      fill(255, 210);
-      text(label, x2 + padX, y2 + 1);
-    }
-
-    function mirrorX(x) {
-      return width - x;
-    }
-
-    function mapX(x) {
-      return map(x, 0, video.width, 0, width);
-    }
-
-    function mapY(y) {
-      return map(y, 0, video.height, 0, height);
-    }
+    function mirrorX(x) { return width - x; }
+    function mapX(x) { return map(x, 0, video.width, 0, width); }
+    function mapY(y) { return map(y, 0, video.height, 0, height); }
 
     function avgPoint(points) {
-      let x = 0;
-      let y = 0;
+      let x = 0, y = 0;
       for (let p of points) {
         x += p[0];
         y += p[1];
@@ -872,37 +1069,14 @@
     }
 
     function getBoundingBox(points) {
-      const xs = points.map((p) => p[0]);
-      const ys = points.map((p) => p[1]);
+      const xs = points.map(p => p[0]);
+      const ys = points.map(p => p[1]);
       return {
         minX: Math.min(...xs),
         maxX: Math.max(...xs),
         minY: Math.min(...ys),
         maxY: Math.max(...ys)
       };
-    }
-
-    function averageBaseline(list) {
-      const out = {
-        mouthOpen: 0,
-        mouthWidth: 0,
-        eyeOpen: 0,
-        browLift: 0
-      };
-
-      for (const item of list) {
-        out.mouthOpen += item.mouthOpen;
-        out.mouthWidth += item.mouthWidth;
-        out.eyeOpen += item.eyeOpen;
-        out.browLift += item.browLift;
-      }
-
-      const n = list.length || 1;
-      out.mouthOpen /= n;
-      out.mouthWidth /= n;
-      out.eyeOpen /= n;
-      out.browLift /= n;
-      return out;
     }
 
     function windowResized() {
